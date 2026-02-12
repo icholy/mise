@@ -10,6 +10,7 @@ use jiff::Timestamp;
 use path_absolutize::Absolutize;
 
 use crate::cli::args::{BackendArg, ToolArg};
+use crate::cli::lock::Lock;
 use crate::config::config_file::ConfigFile;
 use crate::config::{Config, ConfigPathOptions, Settings, config_file, resolve_target_config_path};
 use crate::duration::parse_into_timestamp;
@@ -221,6 +222,18 @@ impl Use {
             let config = Config::reset().await?;
             let ts = config.get_toolset().await?;
             config::rebuild_shims_and_runtime_symlinks(&config, ts, &versions).await?;
+        }
+
+        if Settings::get().lockfile {
+            Lock {
+                tool: self.tool.clone(),
+                jobs: self.jobs,
+                dry_run: self.is_dry_run(),
+                platform: vec![],
+                local: false,
+            }
+            .run()
+            .await?;
         }
 
         self.render_success_message(cf.as_ref(), &versions, &self.remove)?;
